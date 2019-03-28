@@ -150,3 +150,5 @@ private Map<String, Object> getVendorProperties() {
 ```
 
 *详情: https://my.oschina.net/u/3959468/blog/2875232*
+
+*项目见: LoginServer-ShuBan*
