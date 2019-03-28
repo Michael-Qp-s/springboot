@@ -1,0 +1,13 @@
+package com.shuban.LoginServerShuBan;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class LoginServerShuBanApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(LoginServerShuBanApplication.class, args);
+	}
+
+}
