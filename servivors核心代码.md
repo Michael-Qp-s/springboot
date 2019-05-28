@@ -1,62 +1,80 @@
+[TOC]
+
+
+
 # 押注
 
 ```java
-
-				int status = 0;
-				String desc = "";
-				// 判断押注是否符合规则
-				Boolean isDataSuc = user.getUserGameM().userBetRecord(data);
-				if (!isDataSuc) {
-					status = -99;
-					desc = "下注失败,押注错误";
+	/**
+	 * 下注
+	 * @param data 下注信息
+	 * @param user 用户
+	 */
+	private void bet(Map<String, String> data, User user) {
+		try {
+			int status = 0;
+			String desc = "";
+			// if(user.getUserGameTimeM().getBetStageType().isBetStage())
+			// user.getUserGameM().userBetRecord(data);
+			// else
+			// status= -1;
+			// 0成功 -1非押注阶段
+			// 判断押注是否符合规则
+			Boolean isDataSuc = user.getUserGameM().userBetRecord(data);
+			if (!isDataSuc) {
+				status = -99;
+				desc = "下注失败,押注错误";
+			}
+			// 判断押注是否为0
+			if (status == 0 && user.getUserGameM().getTotalBetCoin() == 0) {
+				status = -1;
+				desc = "下注失败,暂无押注";
+			}
+			// 获取总押注
+			Double totalBet = user.getUserGameM().getTotalBetCoin().doubleValue();
+			if (status == 0 && !user.galaOut(totalBet)) {
+				status = -2;
+				desc = "下注失败,交易失败";
+			}
+			String prize = "{}";
+			if (status == 0) {
+				// 计算奖励发奖
+				OpenPrizeClient openPrizeClient = user.getUserGameTimeM().openPrize();
+				prize = JsonUtils.entity2Json(openPrizeClient);
+			}
+			SenderMsg.userMsg(user, Protocol.bet(status, desc, prize));
+			if (status == 0) {
+				if (totalBet < 1000)
+					return;
+				// 出探索卡概率 EAT_BET= .1 EAT_PRIZE_YUNYING= .003 HARDRATE= .3
+				double rate = totalBet * (SysConstant.EAT_BET + SysConstant.EAT_PRIZE_YUNYING) * .1
+						* SysConstant.HARDRATE / 500;
+				if (rate > .5)
+					rate = .5;
+				double random = RandomUtils.nextDouble();
+				boolean flag = rate > random;
+				log.info(Msg.printMsgInfo(user, "探索卡概率[" + rate + "], 随机概率[" + random + "], 是否发放探索卡[" + flag + "]",
+						"判断是否抽探索卡"));
+				if (flag) {
+					UserBalanceM userBalanceM = user.getUserBalanceM();
+					String addr = userBalanceM.getAddr();
+					String itemId = ItemType.EXPLORE_CARD.getItemId();
+					String amount = "1";
+					String userId = userBalanceM.getUserId();
+					// 抽卡
+					baseInvoke.getHttpInterManager().addItemPost(addr, userId, itemId, amount);
+					baseInvoke.getPoolInfoManager().getPoolInfo().itemExploreCardCntAdd(Integer.valueOf(amount));
 				}
-				// 判断押注是否为0
-				if (status == 0 && user.getUserGameM().getTotalBetCoin() == 0) {
-					status = -1;
-					desc = "下注失败,暂无押注";
-				}
-				// 获取总押注
-				Double totalBet = user.getUserGameM().getTotalBetCoin().doubleValue();
-				if (status == 0 && !user.galaOut(totalBet)) {
-					status = -2;
-					desc = "下注失败,交易失败";
-				}
-				String prize = "{}";
-				if (status == 0) {
-					// 计算奖励发奖
-					OpenPrizeClient openPrizeClient = user.getUserGameTimeM().openPrize();
-					prize = JsonUtils.entity2Json(openPrizeClient);
-				}
-				SenderMsg.userMsg(user, Protocol.bet(status, desc, prize));
-				if (status == 0) {
-					if (totalBet < 1000)
-						return;
-					// 出探索卡概率  EAT_BET= .1 EAT_PRIZE_YUNYING= .003 HARDRATE= .3
-					double rate = totalBet * (SysConstant.EAT_BET + SysConstant.EAT_PRIZE_YUNYING) * .1
-							* SysConstant.HARDRATE / 500;
-					if (rate > .5)
-						rate = .5;
-					double random = RandomUtils.nextDouble();
-					boolean flag = rate > random;
-					log.info(Msg.printMsgInfo(user, "探索卡概率[" + rate + "], 随机概率[" + random + "], 是否发放探索卡[" + flag + "]",
-							"判断是否抽探索卡"));
-					if (flag) {
-						UserBalanceM userBalanceM = user.getUserBalanceM();
-						String addr = userBalanceM.getAddr();
-						String itemId = ItemType.EXPLORE_CARD.getItemId();
-						String amount = "1";
-						String userId = userBalanceM.getUserId();
-						// 抽卡
-						baseInvoke.getHttpInterManager().addItemPost(addr, userId, itemId, amount);
-						baseInvoke.getPoolInfoManager().getPoolInfo().itemExploreCardCntAdd(Integer.valueOf(amount));
-					}
-				}
+			}
+		} catch (Exception e) {
+			log.error("", e);
+		}
+	}
 ```
 
 # 用户押注记录并计算总押注
 
 ```java
-
 
 	/**
 	 * 用户押注记录并计算总押注
@@ -355,4 +373,3 @@
 		}
 	}
 ```
-
